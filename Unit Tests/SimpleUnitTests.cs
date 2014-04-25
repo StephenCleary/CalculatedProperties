@@ -8,7 +8,7 @@ namespace Unit_Tests
     [TestClass]
     public class SimpleUnitTests
     {
-        public sealed class SimpleViewModel : ViewModelBase
+        public sealed class ViewModel : ViewModelBase
         {
             public int TriggerValue
             {
@@ -34,21 +34,21 @@ namespace Unit_Tests
         [TestMethod]
         public void Trigger_UsesSpecifiedDefaultValue()
         {
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             Assert.AreEqual(7, vm.TriggerValue);
         }
 
         [TestMethod]
         public void Calculated_BeforeRead_DoesNotExecute()
         {
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             Assert.AreEqual(0, vm.CalculatedValueExecutionCount);
         }
 
         [TestMethod]
         public void Calculated_InitialEvaluation_CalculatesValue()
         {
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             Assert.AreEqual(14, vm.CalculatedValue);
             Assert.AreEqual(1, vm.CalculatedValueExecutionCount);
         }
@@ -56,7 +56,7 @@ namespace Unit_Tests
         [TestMethod]
         public void Calculated_MultipleReads_CachesValue()
         {
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             var value = vm.CalculatedValue;
             value = vm.CalculatedValue;
             Assert.AreEqual(1, vm.CalculatedValueExecutionCount);
@@ -66,7 +66,7 @@ namespace Unit_Tests
         public void TriggerChanged_RaisesPropertyChanged()
         {
             var changes = new List<string>();
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             var value = vm.TriggerValue;
             vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
             vm.TriggerValue = 13;
@@ -76,7 +76,7 @@ namespace Unit_Tests
         [TestMethod]
         public void TriggerChanged_UpdatesValue()
         {
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             vm.TriggerValue = 13;
             Assert.AreEqual(13, vm.TriggerValue);
         }
@@ -85,7 +85,7 @@ namespace Unit_Tests
         public void TriggerChanged_AfterCalculatedIsRead_RaisesPropertyChangedForCalculated()
         {
             var changes = new List<string>();
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
             var originalValue = vm.CalculatedValue;
             vm.TriggerValue = 13;
@@ -95,7 +95,7 @@ namespace Unit_Tests
         [TestMethod]
         public void TriggerChanged_AfterCalculatedIsRead_RecalculatesCalculatedValue()
         {
-            var vm = new SimpleViewModel();
+            var vm = new ViewModel();
             var originalValue = vm.CalculatedValue;
             vm.TriggerValue = 13;
             var updatedValue = vm.CalculatedValue;

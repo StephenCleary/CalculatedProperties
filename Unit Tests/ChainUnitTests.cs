@@ -8,7 +8,7 @@ namespace Unit_Tests
     [TestClass]
     public class ChainUnitTests
     {
-        public sealed class ChainViewModel : ViewModelBase
+        public sealed class ViewModel : ViewModelBase
         {
             public int Leaf
             {
@@ -53,7 +53,7 @@ namespace Unit_Tests
         [TestMethod]
         public void Root_InitialValueIsCalculated()
         {
-            var vm = new ChainViewModel();
+            var vm = new ViewModel();
             Assert.AreEqual(25, vm.Root);
             Assert.AreEqual(1, vm.IntermediateExecutionCount);
             Assert.AreEqual(1, vm.RootExecutionCount);
@@ -63,11 +63,22 @@ namespace Unit_Tests
         public void LeafChanges_RaisesPropertyChangedForAllAffectedProperties()
         {
             var changes = new List<string>();
-            var vm = new ChainViewModel();
+            var vm = new ViewModel();
             vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
             var value = vm.Root;
             vm.Leaf = 13;
             CollectionAssert.AreEquivalent(new[] { "Leaf", "Intermediate", "Root" }, changes);
+        }
+
+        [TestMethod]
+        public void BranchChanges_RaisesPropertyChangedForAllAffectedProperties()
+        {
+            var changes = new List<string>();
+            var vm = new ViewModel();
+            vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+            var value = vm.Root;
+            vm.Branch = 13;
+            CollectionAssert.AreEquivalent(new[] { "Branch", "Root" }, changes);
         }
     }
 }

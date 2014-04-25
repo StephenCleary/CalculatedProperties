@@ -8,7 +8,7 @@ namespace Unit_Tests
     [TestClass]
     public class BranchUnitTests
     {
-        public sealed class BranchViewModel : ViewModelBase
+        public sealed class ViewModel : ViewModelBase
         {
             public bool UseB
             {
@@ -46,7 +46,7 @@ namespace Unit_Tests
         [TestMethod]
         public void Calculated_InitialValueIsCalculated()
         {
-            var vm = new BranchViewModel();
+            var vm = new ViewModel();
             Assert.AreEqual(7, vm.CalculatedValue);
             Assert.AreEqual(1, vm.CalculatedValueExecutionCount);
         }
@@ -55,7 +55,7 @@ namespace Unit_Tests
         public void IndependentPropertyChanges_DoesNotRaisePropertyChangedForCalculated()
         {
             var changes = new List<string>();
-            var vm = new BranchViewModel();
+            var vm = new ViewModel();
             vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
             var value = vm.B;
             value = vm.CalculatedValue;
@@ -67,7 +67,7 @@ namespace Unit_Tests
         public void DependentPropertyChanges_RaisesPropertyChangedForCalculated()
         {
             var changes = new List<string>();
-            var vm = new BranchViewModel();
+            var vm = new ViewModel();
             vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
             var value = vm.A;
             value = vm.CalculatedValue;
@@ -78,7 +78,7 @@ namespace Unit_Tests
         [TestMethod]
         public void Calculated_AfterBranchSwitch_IsRecalculated()
         {
-            var vm = new BranchViewModel();
+            var vm = new ViewModel();
             var value = vm.CalculatedValue;
             vm.UseB = true;
             Assert.AreEqual(11, vm.CalculatedValue);
@@ -89,7 +89,7 @@ namespace Unit_Tests
         public void IndependentPropertyChanges_AfterBranchSwitch_DoesNotRaisePropertyChangedForCalculated()
         {
             var changes = new List<string>();
-            var vm = new BranchViewModel();
+            var vm = new ViewModel();
             vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
             var value = vm.CalculatedValue;
             vm.UseB = true;
@@ -104,7 +104,7 @@ namespace Unit_Tests
         public void DependentPropertyChanges_AfterBranchSwitch_RaisesPropertyChangedForCalculated()
         {
             var changes = new List<string>();
-            var vm = new BranchViewModel();
+            var vm = new ViewModel();
             vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
             var value = vm.CalculatedValue;
             vm.UseB = true;
