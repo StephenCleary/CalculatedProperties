@@ -18,6 +18,7 @@ namespace CalculatedProperties
         private readonly HashSet<ISourceProperty> _sources;
         private T _value;
         private bool _valueIsValid;
+        private Delegate _collectionChangedHandler;
 
         /// <summary>
         /// Creates the calculated property.
@@ -45,6 +46,7 @@ namespace CalculatedProperties
             {
                 _value = _calculateValue();
                 _valueIsValid = true;
+                Attach(_value);
                 return _value;
             }
         }
@@ -55,6 +57,7 @@ namespace CalculatedProperties
         public override void Invalidate()
         {
             _valueIsValid = false;
+            Detach(_value);
             _value = default(T);
             base.Invalidate();
         }
@@ -69,6 +72,16 @@ namespace CalculatedProperties
             _sources.ExceptWith(sourcesToRemove);
             if (sourcesToAdd != null)
                 _sources.UnionWith(sourcesToAdd);
+        }
+
+        private void Attach(T value)
+        {
+            _collectionChangedHandler = ReflectionHelper.For<T>.AddEventHandler(this, value);
+        }
+
+        private void Detach(T value)
+        {
+            ReflectionHelper.For<T>.RemoveEventHandler(value, _collectionChangedHandler);
         }
     }
 }
