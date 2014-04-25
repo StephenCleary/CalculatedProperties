@@ -18,6 +18,7 @@ namespace CalculatedProperties
     {
         private readonly IEqualityComparer<T> _comparer;
         private T _value;
+        private Delegate _collectionChangedHandler;
 
         /// <summary>
         /// Creates the trigger property.
@@ -60,45 +61,14 @@ namespace CalculatedProperties
                 Invalidate();
         }
 
-        // todo: figure out a way to move this to SourcePropertyBase; better performance (static lookups, etc)
-        private Delegate _handler;
         private void Attach(T value)
         {
-            if (value == null)
-                return;
-            
-            // todo: move to static (and shared!)
-            var tType = typeof (T);
-            var nccInterfaceType = tType.GetInterfaces().FirstOrDefault(x => x.FullName == "System.Collections.Specialized.INotifyCollectionChanged");
-            if (nccInterfaceType == null)
-                return;
-            var ccEvent = nccInterfaceType.GetEvent("CollectionChanged");
-            if (ccEvent == null)
-                return;
-            var assembly = nccInterfaceType.Assembly;
-            var argsType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventArgs");
-            var lambdaType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventHandler");
-            var r = new Reflection();
-            var sender = Expression.Parameter(typeof (object), "sender");
-            var args = Expression.Parameter(argsType, "e");
-            var lambda = r.Lambda(lambdaType, r.Call(r.Constant(GetType(), this), "InvalidateTargets"), sender, args);
-            _handler = lambda.Compile();
-            ccEvent.AddEventHandler(value, _handler);
+            _collectionChangedHandler = ReflectionHelper.For<T>.AddEventHandler(this, value);
         }
 
         private void Detach(T value)
         {
-            if (value == null || _handler == null)
-                return;
-
-            var tType = typeof(T);
-            var nccInterfaceType = tType.GetInterfaces().FirstOrDefault(x => x.FullName == "System.Collections.Specialized.INotifyCollectionChanged");
-            if (nccInterfaceType == null)
-                return;
-            var ccEvent = nccInterfaceType.GetEvent("CollectionChanged");
-            if (ccEvent == null)
-                return;
-            ccEvent.RemoveEventHandler(value, _handler);
+            ReflectionHelper.For<T>.RemoveEventHandler(value, _collectionChangedHandler);
         }
     }
 }
