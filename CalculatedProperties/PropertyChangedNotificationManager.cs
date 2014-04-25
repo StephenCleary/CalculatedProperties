@@ -52,13 +52,7 @@ namespace CalculatedProperties
 
         private sealed class ResumeOnDispose : IDisposable
         {
-            private static readonly ResumeOnDispose StaticInstance = new ResumeOnDispose();
-
-            private ResumeOnDispose()
-            {
-            }
-
-            public static ResumeOnDispose Instance { get { return StaticInstance; } }
+            public static ResumeOnDispose Instance = new ResumeOnDispose();
 
             public void Dispose()
             {

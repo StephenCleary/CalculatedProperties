@@ -83,13 +83,7 @@ namespace CalculatedProperties.Internal
 
         private sealed class StopDependencyTrackingWhenDisposed : IDisposable
         {
-            private static readonly StopDependencyTrackingWhenDisposed SingletonInstance = new StopDependencyTrackingWhenDisposed();
-
-            private StopDependencyTrackingWhenDisposed()
-            {
-            }
-
-            public static StopDependencyTrackingWhenDisposed Instance { get { return SingletonInstance; } }
+            public static StopDependencyTrackingWhenDisposed Instance = new StopDependencyTrackingWhenDisposed();
 
             public void Dispose()
             {
