@@ -55,6 +55,7 @@ namespace CalculatedProperties
         public override void Invalidate()
         {
             _valueIsValid = false;
+            _value = default(T);
             base.Invalidate();
         }
 
