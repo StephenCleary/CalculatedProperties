@@ -38,6 +38,7 @@ namespace CalculatedProperties
         public T GetValue([CallerMemberName] string propertyName = null)
         {
             SetPropertyName(propertyName);
+            DependencyTracker.Instance.Register(this);
             if (_valueIsValid)
                 return _value;
             using (DependencyTracker.Instance.StartDependencyTracking(this))
