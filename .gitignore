@@ -81,6 +81,9 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 
+# localhistory is a .NET add-in
+.localhistory/
+
 # JustCode is a .NET coding addin-in
 .JustCode
 
