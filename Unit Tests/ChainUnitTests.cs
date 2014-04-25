@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using CalculatedProperties;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Unit_Tests
@@ -79,6 +80,49 @@ namespace Unit_Tests
             var value = vm.Root;
             vm.Branch = 13;
             CollectionAssert.AreEquivalent(new[] { "Branch", "Root" }, changes);
+        }
+
+        [TestMethod]
+        public void LeafChanges_NotificationsDeferred_RaisesPropertyChangedForAllAffectedPropertiesAfterNotificationsResumed()
+        {
+            var changes = new List<string>();
+            var vm = new ViewModel();
+            vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+            var value = vm.Root;
+            using (PropertyChangedNotificationManager.Instance.DeferNotifications())
+            {
+                vm.Leaf = 13;
+                CollectionAssert.AreEquivalent(new string[] { }, changes);
+            }
+            CollectionAssert.AreEquivalent(new[] { "Leaf", "Intermediate", "Root" }, changes);
+        }
+
+        [TestMethod]
+        public void LeafAndBranchChanges_RaisesPropertyChangedForAllAffectedPropertiesImmediately()
+        {
+            var changes = new List<string>();
+            var vm = new ViewModel();
+            vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+            var value = vm.Root;
+            vm.Leaf = 13;
+            vm.Branch = 13;
+            CollectionAssert.AreEquivalent(new[] { "Leaf", "Intermediate", "Root", "Branch", "Root" }, changes);
+        }
+
+        [TestMethod]
+        public void LeafAndBranchChanges_NotificationsDeferred_RaisesPropertyChangedForAllAffectedPropertiesAfterNotificationsResumed_AndCombinesThem()
+        {
+            var changes = new List<string>();
+            var vm = new ViewModel();
+            vm.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+            var value = vm.Root;
+            using (PropertyChangedNotificationManager.Instance.DeferNotifications())
+            {
+                vm.Leaf = 13;
+                vm.Branch = 13;
+                CollectionAssert.AreEquivalent(new string[] { }, changes);
+            }
+            CollectionAssert.AreEquivalent(new[] { "Leaf", "Intermediate", "Root", "Branch" }, changes);
         }
     }
 }
