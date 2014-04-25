@@ -40,6 +40,7 @@
   <ItemGroup>
     <Compile Include="CalculatedProperty.cs" />
     <Compile Include="Internal\IPropertyChangedNotificationManager.cs" />
+    <Compile Include="Internal\Reflection.cs" />
     <Compile Include="PropertyChangedNotificationManager.cs" />
     <Compile Include="Internal\DependencyTracker.cs" />
     <Compile Include="Internal\IProperty.cs" />

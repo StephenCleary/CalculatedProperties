@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CalculatedProperties.Internal;
@@ -28,6 +30,7 @@ namespace CalculatedProperties
         {
             _comparer = comparer ?? EqualityComparer<T>.Default;
             _value = initialValue;
+            Attach(_value);
         }
 
         /// <summary>
@@ -50,9 +53,52 @@ namespace CalculatedProperties
         {
             SetPropertyName(propertyName);
             var equal = _comparer.Equals(_value, value);
+            Detach(_value);
             _value = value;
+            Attach(_value);
             if (!equal)
                 Invalidate();
+        }
+
+        // todo: figure out a way to move this to SourcePropertyBase; better performance (static lookups, etc)
+        private Delegate _handler;
+        private void Attach(T value)
+        {
+            if (value == null)
+                return;
+            
+            // todo: move to static (and shared!)
+            var tType = typeof (T);
+            var nccInterfaceType = tType.GetInterfaces().FirstOrDefault(x => x.FullName == "System.Collections.Specialized.INotifyCollectionChanged");
+            if (nccInterfaceType == null)
+                return;
+            var ccEvent = nccInterfaceType.GetEvent("CollectionChanged");
+            if (ccEvent == null)
+                return;
+            var assembly = nccInterfaceType.Assembly;
+            var argsType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventArgs");
+            var lambdaType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventHandler");
+            var r = new Reflection();
+            var sender = Expression.Parameter(typeof (object), "sender");
+            var args = Expression.Parameter(argsType, "e");
+            var lambda = r.Lambda(lambdaType, r.Call(r.Constant(GetType(), this), "InvalidateTargets"), sender, args);
+            _handler = lambda.Compile();
+            ccEvent.AddEventHandler(value, _handler);
+        }
+
+        private void Detach(T value)
+        {
+            if (value == null || _handler == null)
+                return;
+
+            var tType = typeof(T);
+            var nccInterfaceType = tType.GetInterfaces().FirstOrDefault(x => x.FullName == "System.Collections.Specialized.INotifyCollectionChanged");
+            if (nccInterfaceType == null)
+                return;
+            var ccEvent = nccInterfaceType.GetEvent("CollectionChanged");
+            if (ccEvent == null)
+                return;
+            ccEvent.RemoveEventHandler(value, _handler);
         }
     }
 }
