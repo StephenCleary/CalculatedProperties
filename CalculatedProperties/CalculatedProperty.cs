@@ -15,7 +15,7 @@ namespace CalculatedProperties
     public sealed class CalculatedProperty<T> : SourcePropertyBase, ITargetProperty
     {
         private readonly Func<T> _calculateValue;
-        private ISet<ISourceProperty> _sources;
+        private readonly HashSet<ISourceProperty> _sources;
         private T _value;
         private bool _valueIsValid;
 
@@ -57,20 +57,16 @@ namespace CalculatedProperties
             base.Invalidate();
         }
 
-        void ITargetProperty.UpdateSources(ISet<ISourceProperty> sources)
+        ISet<ISourceProperty> ITargetProperty.Sources
         {
-            if (_sources.SetEquals(sources))
-                return;
+            get { return _sources; }
+        }
 
-            var add = new HashSet<ISourceProperty>(sources);
-            add.ExceptWith(_sources);
-            var remove = new HashSet<ISourceProperty>(_sources);
-            remove.ExceptWith(sources);
-            foreach (var sourceToRemove in remove)
-                sourceToRemove.RemoveTarget(this);
-            foreach (var sourceToAdd in add)
-                sourceToAdd.AddTarget(this);
-            _sources = sources;
+        void ITargetProperty.UpdateSources(ISet<ISourceProperty> sourcesToRemove, ISet<ISourceProperty> sourcesToAdd)
+        {
+            _sources.ExceptWith(sourcesToRemove);
+            if (sourcesToAdd != null)
+                _sources.UnionWith(sourcesToAdd);
         }
     }
 }

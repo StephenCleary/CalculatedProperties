@@ -30,7 +30,7 @@ namespace CalculatedProperties.Internal
         /// <param name="targetProperty">The target property.</param>
         public IDisposable StartDependencyTracking(ITargetProperty targetProperty)
         {
-            _stack.Push(new StackFrame { TargetProperty = targetProperty });
+            _stack.Push(new StackFrame(targetProperty));
             return StopDependencyTrackingWhenDisposed.Instance;
         }
 
@@ -43,24 +43,42 @@ namespace CalculatedProperties.Internal
             var currentFrame = _stack.Peek();
             if (currentFrame == null)
                 return;
-            currentFrame.SourceProperties.Add(sourceProperty);
+            currentFrame.Register(sourceProperty);
         }
 
         private void StopDependencyTracking()
         {
-            var frame = _stack.Pop();
-            frame.TargetProperty.UpdateSources(frame.SourceProperties);
+            _stack.Pop().UpdatePropertyDependencies();
         }
 
         private sealed class StackFrame
         {
-            public StackFrame()
+            private readonly ITargetProperty _targetProperty;
+            private readonly HashSet<ISourceProperty> _sourcesToRemove;
+            private HashSet<ISourceProperty> _sourcesToAdd;
+
+            public StackFrame(ITargetProperty targetProperty)
             {
-                SourceProperties = new HashSet<ISourceProperty>();
+                _targetProperty = targetProperty;
+                _sourcesToRemove = new HashSet<ISourceProperty>(_targetProperty.Sources);
             }
 
-            public ITargetProperty TargetProperty { get; set; }
-            public HashSet<ISourceProperty> SourceProperties { get; private set; } 
+            public void Register(ISourceProperty source)
+            {
+                if (_sourcesToRemove.Remove(source))
+                    return;
+                if (_sourcesToAdd == null)
+                    _sourcesToAdd = new HashSet<ISourceProperty>();
+                _sourcesToAdd.Add(source);
+                source.AddTarget(_targetProperty);
+            }
+
+            public void UpdatePropertyDependencies()
+            {
+                _targetProperty.UpdateSources(_sourcesToRemove, _sourcesToAdd);
+                foreach (var source in _sourcesToRemove)
+                    source.RemoveTarget(_targetProperty);
+            }
         }
 
         private sealed class StopDependencyTrackingWhenDisposed : IDisposable
