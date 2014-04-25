@@ -73,6 +73,20 @@ namespace CalculatedProperties.Internal
             }
         }
 
+        /// <summary>
+        /// Invalidates this property and the transitive closure of all its target properties. If notifications are not deferred, then this method will raise <see cref="INotifyPropertyChanged.PropertyChanged"/> for all affected properties before returning. <see cref="INotifyPropertyChanged.PropertyChanged"/> is not raised for this property.
+        /// </summary>
+        public virtual void InvalidateTargets()
+        {
+            // Ensure notifications are deferred.
+            using (PropertyChangedNotificationManager.Instance.DeferNotifications())
+            {
+                // Invalidate all targets.
+                foreach (var target in _targets)
+                    target.Invalidate();
+            }
+        }
+
         void ISourceProperty.AddTarget(ITargetProperty targetProperty)
         {
             _targets.Add(targetProperty);
