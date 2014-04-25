@@ -50,9 +50,9 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="BranchViewModel.cs" />
-    <Compile Include="SimpleViewModel.cs" />
-    <Compile Include="UnitTests.cs" />
+    <Compile Include="ChainUnitTests.cs" />
+    <Compile Include="BranchUnitTests.cs" />
+    <Compile Include="SimpleUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ViewModelBase.cs" />
   </ItemGroup>
