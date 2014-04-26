@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using CalculatedProperties.Internal;
@@ -10,6 +11,8 @@ namespace CalculatedProperties
     /// <summary>
     /// Manages deferring (and consolidating) of <see cref="INotifyPropertyChanged.PropertyChanged"/> events.
     /// </summary>
+    [DebuggerTypeProxy(typeof(DebugView))]
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class PropertyChangedNotificationManager : IPropertyChangedNotificationManager
     {
         private static readonly PropertyChangedNotificationManager SingletonInstance = new PropertyChangedNotificationManager();
@@ -58,6 +61,30 @@ namespace CalculatedProperties
             {
                 PropertyChangedNotificationManager.Instance.ResumeNotifications();
             }
+        }
+
+        private string DebuggerDisplay
+        {
+            get
+            {
+                if (_referenceCount == 0)
+                    return "Not deferred";
+                return "Deferred; notification count: " + _propertiesRequiringNotification.Count + ", defer refcount: " + _referenceCount;
+            }
+        }
+
+        private sealed class DebugView
+        {
+            private readonly PropertyChangedNotificationManager _value;
+
+            public DebugView(PropertyChangedNotificationManager value)
+            {
+                _value = value;
+            }
+
+            public int ReferenceCount { get { return _value._referenceCount; } }
+
+            public HashSet<IProperty> DeferredNotifications { get { return _value._propertiesRequiringNotification; } }
         }
     }
 }

@@ -12,6 +12,8 @@ namespace CalculatedProperties
     /// <summary>
     /// Manages a collection of properties.
     /// </summary>
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    [DebuggerTypeProxy(typeof(DebugView))]
     public sealed class PropertyHelper
     {
         private readonly Action<PropertyChangedEventArgs> _onPropertyChanged;
@@ -120,6 +122,27 @@ namespace CalculatedProperties
         public T Calculated<T>(Func<T> calculateValue, [CallerMemberName] string propertyName = null)
         {
             return GetOrAddCalculatedProperty(calculateValue, propertyName).GetValue(propertyName);
+        }
+
+        private string DebuggerDisplay
+        {
+            get { return "Count = " + _properties.Count; }
+        }
+
+        private sealed class DebugView
+        {
+            private readonly PropertyHelper _properties;
+
+            public DebugView(PropertyHelper properties)
+            {
+                _properties = properties;
+            }
+
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            public object Properties
+            {
+                get { return _properties._properties.Values.ToArray(); }
+            }
         }
     }
 }

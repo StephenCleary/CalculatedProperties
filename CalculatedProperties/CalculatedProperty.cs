@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -12,6 +13,8 @@ namespace CalculatedProperties
     /// A calculated property: a property whose value is determined by a delegate. Calculated properties are target properties and may also be source properties.
     /// </summary>
     /// <typeparam name="T">The type of the property value returned by the delegate.</typeparam>
+    [DebuggerTypeProxy(typeof(CalculatedProperty<>.DebugView))]
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class CalculatedProperty<T> : SourcePropertyBase, ITargetProperty
     {
         private readonly Func<T> _calculateValue;
@@ -82,6 +85,45 @@ namespace CalculatedProperties
         private void Detach(T value)
         {
             ReflectionHelper.For<T>.RemoveEventHandler(value, _collectionChangedHandler);
+        }
+
+        private string DebuggerDisplay
+        {
+            get
+            {
+                var view = new DebugView(this);
+                var name = view.Name ?? "<null>";
+                if (!_valueIsValid)
+                    return name + ": <invalid>";
+                var list = _value as System.Collections.IList;
+                if (list == null)
+                    return name + ": " + view.Value;
+                return name + ": Count = " + list.Count;
+            }
+        }
+
+        private sealed new class DebugView
+        {
+            private readonly CalculatedProperty<T> _property;
+            private readonly SourcePropertyBase.DebugView _base;
+
+            public DebugView(CalculatedProperty<T> property)
+            {
+                _property = property;
+                _base = new SourcePropertyBase.DebugView(property);
+            }
+
+            public string Name { get { return _base.Name; } }
+
+            public bool IsValid { get { return _property._valueIsValid; } }
+
+            public T Value { get { return _property._value; } }
+
+            public HashSet<ISourceProperty> Sources { get { return _property._sources; } } 
+
+            public HashSet<ITargetProperty> Targets { get { return _base.Targets; } }
+
+            public bool ListeningToCollectionChanged { get { return _property._collectionChangedHandler != null; } }
         }
     }
 }

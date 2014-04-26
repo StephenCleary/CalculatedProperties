@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -14,6 +15,8 @@ namespace CalculatedProperties
     /// A trigger property: a source property that invalidates its targets when set.
     /// </summary>
     /// <typeparam name="T">The type of the property value.</typeparam>
+    [DebuggerTypeProxy(typeof(TriggerProperty<>.DebugView))]
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class TriggerProperty<T> : SourcePropertyBase
     {
         private readonly IEqualityComparer<T> _comparer;
@@ -69,6 +72,39 @@ namespace CalculatedProperties
         private void Detach(T value)
         {
             ReflectionHelper.For<T>.RemoveEventHandler(value, _collectionChangedHandler);
+        }
+
+        private string DebuggerDisplay
+        {
+            get
+            {
+                var view = new DebugView(this);
+                var name = view.Name ?? "<null>";
+                var list = _value as System.Collections.IList;
+                if (list == null)
+                    return name + ": " + view.Value;
+                return name + ": Count = " + list.Count;
+            }
+        }
+
+        private sealed new class DebugView
+        {
+            private readonly TriggerProperty<T> _property;
+            private readonly SourcePropertyBase.DebugView _base;
+
+            public DebugView(TriggerProperty<T> property)
+            {
+                _property = property;
+                _base = new SourcePropertyBase.DebugView(property);
+            }
+
+            public string Name { get { return _base.Name; } }
+
+            public T Value { get { return _property._value; } }
+
+            public HashSet<ITargetProperty> Targets { get { return _base.Targets; } }
+
+            public bool ListeningToCollectionChanged { get { return _property._collectionChangedHandler != null; } }
         }
     }
 }

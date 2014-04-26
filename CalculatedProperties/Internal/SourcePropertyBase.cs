@@ -96,5 +96,32 @@ namespace CalculatedProperties.Internal
         {
             _targets.Remove(targetProperty);
         }
+
+        /// <summary>
+        /// A type that exposes internal values, for debugger use only!
+        /// </summary>
+        protected sealed class DebugView
+        {
+            private readonly SourcePropertyBase _property;
+
+            /// <summary>
+            /// Creates a debug view for the specified property.
+            /// </summary>
+            /// <param name="property">The property to examine.</param>
+            public DebugView(SourcePropertyBase property)
+            {
+                _property = property;
+            }
+
+            /// <summary>
+            /// Gets the property name.
+            /// </summary>
+            public string Name { get { return _property._propertyName; } }
+
+            /// <summary>
+            /// Gets the target properties.
+            /// </summary>
+            public HashSet<ITargetProperty> Targets { get { return _property._targets; } }
+        }
     }
 }
