@@ -72,11 +72,19 @@ When a trigger property is written, that trigger property and the transitive clo
 
 When the current value of a trigger property or calculated property is a collection that implements `INotifyCollectionChanged`, then that property will subscribe to `CollectionChanged` and invalidate the transitive closure of all its target properties whenever the collection changes in any way. Note that in this case, the property value is not actually changed (it still refers to the same collection), so only the target properties are invalidated, not the property whose value is the collection. Calling `InvalidateTargets()` on a trigger property or calculated property has the same effect.
 
-Note: `IBindingList` is not currently supported, but it wouldn't be too hard to add it in if someone needs it.
+> `IBindingList` is supported in the same way as `INotifyCollectionChanged`; however, `IBindingList` is less efficient. Use `ObservableCollection<T>` instead of `BindingList<T>` if possible.
 
 Invalidation always delays `PropertyChanged` notification while the affected properties are being invalidated, and resumes notification when the invalidations are complete. See "Notification", below.
 
-=== Calculation
+=== Calculated Values
+
+Calculated properties will calculate their value on demand (i.e., when read). They also remember the calculated value and will not re-evaluate it as long as it is valid. So, if a calculated property is retrieved and then retrieved again immediately, the cached value is returned the second time.
+
+When a calculated property is invalidated, it merely marks itself as invalid. It will not actually recalculate its value until its getter is called.
+
+
+
+=== Notification
 
 - when calculation takes place
 
@@ -89,9 +97,7 @@ When a property value is calculated, any properties used to determine its value 
 - like an AngularJS digest loop
 
 - threading
-
-- Collection monitoring.
-- Does not support IBindingList, but it wouldn't be too hard to add if someone needs it.
+- debug output
 
 == Alternatives
 
