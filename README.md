@@ -40,7 +40,7 @@ Done.
 
 No, seriously. That's it.
 
-`MyValue` and `MyCalculatedValue` will automatically raise `PropertyChanged` appropriately. Any time `MyValue` is set, both property values notify that they have been updated.
+`MyValue` and `MyCalculatedValue` will automatically raise `PropertyChanged` appropriately. Any time `MyValue` is set, both property values notify that they have been updated. This works even if they are properties on different ViewModels.
 
 It's magic!
 
@@ -74,30 +74,124 @@ When the current value of a trigger property or calculated property is a collect
 
 > `IBindingList` is supported in the same way as `INotifyCollectionChanged`; however, `IBindingList` is less efficient. Use `ObservableCollection<T>` instead of `BindingList<T>` if possible.
 
-Invalidation always delays `PropertyChanged` notification while the affected properties are being invalidated, and resumes notification when the invalidations are complete. See "Notification", below.
+Invalidation always defers `PropertyChanged` notification while the affected properties are being invalidated, and resumes notification when the invalidations are complete. See "Notification", below.
 
 === Calculated Values
 
 Calculated properties will calculate their value on demand (i.e., when read). They also remember the calculated value and will not re-evaluate it as long as it is valid. So, if a calculated property is retrieved and then retrieved again immediately, the cached value is returned the second time.
 
-When a calculated property is invalidated, it merely marks itself as invalid. It will not actually recalculate its value until its getter is called.
+Invalidating a calculated property merely marks the property as invalid. It will not actually recalculate its value until its getter is called. When calculated properties are initially constructed, they are always invalid.
 
+=== Dependency Tracking
 
+When a calculated property calculates its value, it establishes a dependency tracking scope with itself as the target property. While the calulated property delegate is being evaluated, any trigger property getters or calculated property getters will register those properties as source properties within that scope.
+
+Since a calculated property may depend on other calculated properties, dependency scopes can be nested (internally, there's a *stack* of dependency tracking scopes).
+
+When the dependency tracking scope is completed, it updates the calculated property's collection of source properties as well as the source properties' collections of target properties. This ensures that each property knows all of its target properties (and source properties, if applicable).
 
 === Notification
 
-- when calculation takes place
+`PropertyChanged` notification normally happens at the end of invalidation, after all affected properties have been invalidated. After all affected properties have been invalidated, then all invalidated properties raise `PropertyChanged`.
 
-When a property value is calculated, any properties used to determine its value are linked to that property. When the linked properties change, the related property is recalculated.
+> The whole invalidation and dependency tracking system is independent of `PropertyChanged`. Raising `PropertyChanged` is a separate step in the process, for several reasons. A separate invalidation/dependency tracking system is more efficient than one that is based on `PropertyChanged`. As a separate system, it avoids string comparisons and spurious notifications within the system. Also, the separation permits consolidation of both the invalidation phase and the notification phase, eliminating spurious notifications produced by the system.
+> 
+> A final benefit of this separation is that it results in a cleaner and more predictable execution of complex scenarios. E.g., if you choose to use the `PropertyChanged` of a calculated property to (manually) update a different trigger property. If invalidation and dependency tracking were implemented using `PropertyChanged`, then that would be a hairy scenario to untangle and predict which properties will be updated when. By separating invalidation/dependency tracking from `PropertyChanged`, the execution is much more predictable (and efficient). Of course, this is still an unusual test case, and not recommented; I recommend replacing manual `PropertyChanged` handlers with calculated properties as much as possible.
 
-, which can depend on trigger properties or other calculated properties:
+During the invalidation process, `PropertyChanged` notifications are **deferred**. The deferring of `PropertyChanged` notifications can be safely nested; internally, there is a reference count of deferrals, and the `PropertyChanged` events will only fire once this reference count reaches zero.
 
-- invalidation
-- propertychanged notification
-- like an AngularJS digest loop
+You can defer notifications manually. You would want to do this, for example, if you are setting several different trigger values and want to do so in the most efficient manner:
 
-- threading
-- debug output
+    using (PropertyChangedNotificationManager.Instance.DeferNotifications())
+    {
+        vm.SomeProperty = someValue;
+        vm.OtherProperty = otherValue;
+        // At this point, all affected properties are invalidated.
+    }
+    // At this point, all PropertyChanged events have been raised
+    //  (assuming there are no deferrals further up the stack).
+
+This is especially useful if you have calculated properties that depend on multiple values that you're setting; by deferring the `PropertyChanged` notifications, you're consolidating the multiple `PropertyChanged` events into a single one.
+
+=== Example Update Lifecycle
+
+A walk-through should help take the abstract concepts above and translate them to a concrete description of how the property values work. Take the introductory example:
+
+    public int MyValue
+    {
+        get { return Properties.Get(7); }
+        set { Properties.Set(value); }
+    }
+
+    public int MyCalculatedValue
+    {
+        get { return Properties.Calculated(() => MyValue * 2); }
+    }
+
+We'll say that `MyViewModel.MyCalculatedValue` is data-bound to some UI control, like a label.
+
+When the ViewModel is constructed, neither of the properties technically exist yet. When the ViewModel is bound to the View, then the UI invokes the getter on `MyViewModel.MyCalculatedValue`, and here is where things get interesting:
+
+- `Properties.Calculated` will create the actual calculated property (named `"MyCalculatedValue"`) the first time it is invoked. Calculated properties are always created in an invalid state.
+- `Properties.Calculated` will then invoke the `CalculatedProperty.GetValue` method of that property.
+- `CalculatedProperty.GetValue` will see that it is in an invalid state, so it decides to calculate its value.
+  - `CalculatedProperty.GetValue` establishes a dependency tracking scope and invokes its delegate (`() => MyValue * 2`).
+    - The delegate invokes the getter of `MyViewModel.MyValue`, which calls `Properties.Get`.
+    - `Properties.Get` will create the actual trigger property (named `"MyValue"`) the first time it is invoked. The trigger property value is `7`.
+    - `Properties.Get` will then invoke the `TriggerProperty.GetValue` method of that trigger property.
+    - `TriggerProperty.GetValue` registers that property with the dependency tracking scope, and then returns `7`.
+    - The delegate completes executing, returning the value `14`.
+  - `CalculatedProperty.GetValue` completes the dependency tracking scope.
+    - `MyCalculatedValue` now has a collection of sources: `[MyValue]`.
+    - `MyValue` now has a collection of targets: `[MyCalculatedValue]`.
+  - The calculated property now has a value of `14` and is marked valid.
+- Finally, the `MyViewModel.MyCalculatedValue` getter returns the value `14` to the UI.
+
+Fun, eh? Now, let's observe how an update works. Let's set a source property:
+
+    vm.MyValue = 13;
+
+- `Properties.Set` will invoke the `TriggerProperty.SetValue` method of the `"MyValue"` property.
+- The new value `13` is not equal to the current value `7`, so the trigger property has to update.
+- The trigger property defers notifications.
+  - The trigger property invalidates itself and the transitive closure of all its target properties.
+  - As each property is invalidated, it adds itself to the deferred notification collection.
+  - The trigger property does not actually enter an invalid state; it just updates its value to `13` and adds itself to the deferred collection.
+  - The calculated property enters an invalid state.
+  - The deferred notification property collection is now: `[MyValue, MyCalculatedValue]`.
+- The trigger property resumes notifications.
+- Since notifications are no longer deferred, `PropertyChanged` events are raised for the properties in the deferred collection (`MyValue` and `MyCalculatedValue`).
+- The UI detects the `PropertyChanged` notification for `MyCalculatedValue` and invokes the getter for that property.
+- `Properties.Calculated` will invoke the `CalculatedProperty.GetValue` method of the `"MyCalculatedValue"` property.
+- `CalculatedProperty.GetValue` will see that it is in an invalid state, so it decides to (re-)calculate its value.
+  - `CalculatedProperty.GetValue` establishes a dependency tracking scope and invokes its delegate (`() => MyValue * 2`).
+    - The delegate invokes the getter of `MyViewModel.MyValue`, which calls `Properties.Get`.
+    - `Properties.Get` will invoke the `TriggerProperty.GetValue` method of that trigger property.
+    - `TriggerProperty.GetValue` registers that property with the dependency tracking scope, and then returns `13`.
+    - The delegate completes executing, returning the value `26`.
+  - `CalculatedProperty.GetValue` completes the dependency tracking scope.
+    - `MyCalculatedValue` has the same collection of sources: `[MyValue]`.
+    - `MyValue` has the same collection of targets: `[MyCalculatedValue]`.
+  - The calculated property now has a value of `26` and is marked valid.
+- Finally, the `MyViewModel.MyCalculatedValue` getter returns the value `26` to the UI.
+
+This sounds like a lot of work, but in reality it is *extremely* fast, as well as flexible.
+
+=== Miscellany
+
+Trigger properties and calculated properties are **not threadsafe**. They are not specifically tied to a UI thread (they don't use `Dispatcher` or anything like that), but they do expect that they will all be written to from the same thread (which, in practice, is the UI thread). Some MVVM platforms (most notably WPF) will do automatic cross-thread marshaling for simple property updates, but that *will not work* for updating calculated properties.
+
+Like regular data binding, trigger properties and calculated properties will write non-fatal errors to the debugger output window, so if you are not seeing updates when you think you should, check there first. However, if you use the `PropertyHelper` class like all the examples do, it's not possible to encounter those errors. :)
+
+Dependency loops (e.g., a calculated property indirectly depending on its own value) will result in a stack overflow exception. I have no intention of adding explicit checks for this, since I expect it to be a rare scenario.
+
+=== Advanced
+
+Comparers.
+
+
+TODO: cross-thread checks (always).
+
 
 == Alternatives
 
