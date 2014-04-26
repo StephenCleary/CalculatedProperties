@@ -1,12 +1,12 @@
 = CalculatedProperties
 
-Easy to use calculated properties for MVVM apps (.NET 4, MonoTouch, MonoDroid, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8.0, and Silverlight 5).
+Easy-to-use calculated properties for MVVM apps (.NET 4, MonoTouch, MonoDroid, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8.0, and Silverlight 5).
 
 == Quick Start
 
 Install the NuGet package.
 
-Add a `PropertyHelper` instance to your view model (pass in a delegate that raises `PropertyChanged`):
+Add a `PropertyHelper` instance to your view model (pass in a delegate that raises `PropertyChanged` for that instance):
 
     private readonly PropertyHelper Properties;
 
@@ -21,7 +21,7 @@ Add a `PropertyHelper` instance to your view model (pass in a delegate that rais
             PropertyChanged(this, args);
     }
 
-Next, create read/write "trigger" properties (pass the default value in the getter):
+Next, create read/write _trigger_ properties (pass the default value in the getter):
 
     public int MyValue
     {
@@ -29,7 +29,7 @@ Next, create read/write "trigger" properties (pass the default value in the gett
         set { Properties.Set(value); }
     }
 
-Now you can create read-only "calculated" properties, which can depend on trigger properties or other calculated properties:
+Now you can create read-only _calculated_ properties:
 
     public int MyCalculatedValue
     {
@@ -40,17 +40,55 @@ Done.
 
 No, seriously. That's it.
 
-`MyValue` and `MyCalculatedValue` will automatically raise `PropertyChanged` appropriately. Any time `MyValue` is set, both property values will be updated.
+`MyValue` and `MyCalculatedValue` will automatically raise `PropertyChanged` appropriately. Any time `MyValue` is set, both property values notify that they have been updated.
 
 It's magic!
 
 == How It Works
 
-Property relationships are determined using dependency tracking. When a property value is calculated, any properties used to determine its value are linked to that property. When linked properties change, the related property is recalculated.
+Property relationships are determined using dependency tracking.
+
+=== Terminology
+
+A **source property** is a property whose value is used in the calculation of another property. Every source property has a collection of target properties that it influences.
+
+A **target property** is a property whose value is determined by executing a delegate. Every target property has a collection of source properties whose value it depends on.
+
+A **trigger property** is a read/write source property.
+
+A **calculated property** is a read-only target property that is *also* a source property.
+
+Source properties and target properties are internal concepts (they're not exposed to you), but they help simplify the dependency tracking discussion below. Just keep in mind that a target property is always a calculated property, but a source property may be a trigger property *or* a calculated property.
+
+=== Invalidation
+
+Invalidation can start one of several ways:
+
+- Writing a trigger property.
+- Calling `Invalidate()` or `InvalidateTargets()` on a trigger property or calculated property.
+- Modifying an observable collection that is the current value of a trigger property or calculated property.
+
+When a trigger property is written, that trigger property and the transitive closure of all its target properties are invalidated. Calling `Invalidate()` on a trigger property or calculated property has the same effect.
+
+When the current value of a trigger property or calculated property is a collection that implements `INotifyCollectionChanged`, then that property will subscribe to `CollectionChanged` and invalidate the transitive closure of all its target properties whenever the collection changes in any way. Note that in this case, the property value is not actually changed (it still refers to the same collection), so only the target properties are invalidated, not the property whose value is the collection. Calling `InvalidateTargets()` on a trigger property or calculated property has the same effect.
+
+Note: `IBindingList` is not currently supported, but it wouldn't be too hard to add it in if someone needs it.
+
+Invalidation always delays `PropertyChanged` notification while the affected properties are being invalidated, and resumes notification when the invalidations are complete. See "Notification", below.
+
+=== Calculation
+
+- when calculation takes place
+
+When a property value is calculated, any properties used to determine its value are linked to that property. When the linked properties change, the related property is recalculated.
+
+, which can depend on trigger properties or other calculated properties:
 
 - invalidation
 - propertychanged notification
 - like an AngularJS digest loop
+
+- threading
 
 - Collection monitoring.
 - Does not support IBindingList, but it wouldn't be too hard to add if someone needs it.
