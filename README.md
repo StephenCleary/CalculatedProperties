@@ -40,7 +40,7 @@ Done.
 
 No, seriously. That's it.
 
-`MyValue` and `MyCalculatedValue` will automatically raise `PropertyChanged` appropriately. Any time `MyValue` is set, both property values notify that they have been updated. This works even if they are properties on different ViewModels.
+`MyValue` and `MyCalculatedValue` will automatically raise `PropertyChanged` appropriately. Any time `MyValue` is set, both property values notify that they have been updated. This works even if they are properties on different ViewModels. The only thing you have to be careful about is to only access these properties from the UI thread.
 
 It's magic!
 
@@ -66,13 +66,9 @@ Invalidation can start one of several ways:
 
 - Writing a trigger property.
 - Calling `Invalidate()` or `InvalidateTargets()` on a trigger property or calculated property.
-- Modifying an observable collection that is the current value of a trigger property or calculated property.
+- Modifying an observable collection that is the current value of a trigger property or calculated property. See "Collections", below.
 
 When a trigger property is written, that trigger property and the transitive closure of all its target properties are invalidated. Calling `Invalidate()` on a trigger property or calculated property has the same effect.
-
-When the current value of a trigger property or calculated property is a collection that implements `INotifyCollectionChanged`, then that property will subscribe to `CollectionChanged` and invalidate the transitive closure of all its target properties whenever the collection changes in any way. Note that in this case, the property value is not actually changed (it still refers to the same collection), so only the target properties are invalidated, not the property whose value is the collection. Calling `InvalidateTargets()` on a trigger property or calculated property has the same effect.
-
-> `IBindingList` is supported in the same way as `INotifyCollectionChanged`; however, `IBindingList` is less efficient. Use `ObservableCollection<T>` instead of `BindingList<T>` if possible.
 
 Invalidation always defers `PropertyChanged` notification while the affected properties are being invalidated, and resumes notification when the invalidations are complete. See "Notification", below.
 
@@ -177,21 +173,49 @@ Fun, eh? Now, let's observe how an update works. Let's set a source property:
 
 This sounds like a lot of work, but in reality it is *extremely* fast, as well as flexible.
 
+=== Collections
+
+When the current value of a trigger property or calculated property is a collection that implements `INotifyCollectionChanged`, then that property will subscribe to `CollectionChanged` and invalidate the transitive closure of all its target properties whenever the collection changes in any way. Note that in this case, the property value is not actually changed (it still refers to the same collection), so only the target properties are invalidated, not the property whose value is the collection. Calling `InvalidateTargets()` on a trigger property or calculated property has the same effect.
+
+This allows calculated properties to use observable collections and Just Work:
+
+    public ObservableCollection<int> MyValue
+    {
+        get { return Properties.Get(() => new ObservableCollection<int>()); }
+        set { Properties.Set(value); }
+    }
+
+    public int MyCalculatedValue
+    {
+        get { return Properties.Calculated(() => MyValue.Count == 0 ? 13 : MyValue.First()); }
+    }
+
+`IBindingList` is supported in the same way as `INotifyCollectionChanged`; however, `IBindingList` is less efficient. Use `ObservableCollection<T>` instead of `BindingList<T>` if possible.
+
+=== Comparers
+
+When a trigger property is set, it will first evaluate its old value against its new value to determine whether it needs to update. You can specify a comparer to the trigger property to override how this comparison is done:
+
+    private static readonly IEqualityComparer<int> Comparer = ...;
+    public int MyValue
+    {
+        get { return Properties.Get(7, Comparer); }
+        set { Properties.Set(value, Comparer); }
+    }
+
+Note that the same comparer instance should be passed into both `Get` and `Set`.
+
+If a trigger property is set to an "equal" value, then it does *not* enter the invalidation phase; neither the trigger property nor any of its targets are invalidated. However, it does overwrite its old value with the new value, even if the are "equal".
+
+If you'd like a simple library with a fluent API for creating comparers and equality comparers, try the [Comparers NuGet package](https://www.nuget.org/packages/Comparers/).
+
 === Miscellany
 
-Trigger properties and calculated properties are **not threadsafe**. They are not specifically tied to a UI thread (they don't use `Dispatcher` or anything like that), but they do expect that they will all be written to from the same thread (which, in practice, is the UI thread). Some MVVM platforms (most notably WPF) will do automatic cross-thread marshaling for simple property updates, but that *will not work* for updating calculated properties.
+Trigger properties and calculated properties are **not threadsafe**. They are not specifically tied to a UI thread (they don't use `Dispatcher` or anything like that), but they do expect that they will all be written to from the same thread (which, in practice, is the UI thread). Some MVVM platforms (most notably WPF) will do automatic cross-thread marshaling for simple property updates, but that *will not work* for updating calculated properties. Trigger properties and calculated properties will detect cross-thread access and will throw `InvalidOperationException`.
 
-Like regular data binding, trigger properties and calculated properties will write non-fatal errors to the debugger output window, so if you are not seeing updates when you think you should, check there first. However, if you use the `PropertyHelper` class like all the examples do, it's not possible to encounter those errors. :)
+Like regular data binding, trigger properties and calculated properties will write non-fatal errors to the debugger output window, so if you are not seeing updates when you think you should, check there first. However, if you use the `PropertyHelper` class like all the examples do, it's very difficult to actually cause those errors. :)
 
 Dependency loops (e.g., a calculated property indirectly depending on its own value) will result in a stack overflow exception. I have no intention of adding explicit checks for this, since I expect it to be a rare scenario.
-
-=== Advanced
-
-Comparers.
-
-
-TODO: cross-thread checks (always).
-
 
 == Alternatives
 
