@@ -7,6 +7,9 @@ using System.Text;
 
 namespace CalculatedProperties.Internal
 {
+    /// <summary>
+    /// Provides methods (with caching) to assist with reflection.
+    /// </summary>
     public static class ReflectionHelper
     {
         private static Type _iNotifyCollectionChangedType;
@@ -14,6 +17,10 @@ namespace CalculatedProperties.Internal
         private static Type _notifyCollectionChangedEventHandlerType;
         private static EventInfo _collectionChangedEvent;
 
+        /// <summary>
+        /// Provides methods (with caching) to assist with reflection over a specific type.
+        /// </summary>
+        /// <typeparam name="T">The type being reflected over.</typeparam>
         public static class For<T>
         {
             // ReSharper disable once StaticFieldInGenericType
@@ -39,7 +46,12 @@ namespace CalculatedProperties.Internal
                 }
             }
 
-            public static Delegate AddEventHandler(object property, T value)
+            /// <summary>
+            /// Adds a <c>INotifyCollectionChanged.CollectionChanged</c> event handler that calls <see cref="IProperty.InvalidateTargets"/> on the specified property. Returns the subscribed delegate, or <c>null</c> if <typeparamref name="T"/> does not implement <c>INotifyCollectionChanged</c> or if <paramref name="value"/> is <c>null</c>.
+            /// </summary>
+            /// <param name="property">The property whose targets should be invalidated. May not be <c>null</c>.</param>
+            /// <param name="value">The value to observe. May be <c>null</c>.</param>
+            public static Delegate AddEventHandler(IProperty property, T value)
             {
                 // ReSharper disable once CompareNonConstrainedGenericWithNull
                 if (!ImplementsINotifyCollectionChanged || value == null)
@@ -48,13 +60,18 @@ namespace CalculatedProperties.Internal
                 var sender = Expression.Parameter(typeof(object), "sender");
                 var args = Expression.Parameter(_notifyCollectionChangedEventArgsType, "e");
                 var lambda = Expression.Lambda(_notifyCollectionChangedEventHandlerType,
-                    Expression.Call(Expression.Constant(property, property.GetType()), "InvalidateTargets", null),
+                    Expression.Call(Expression.Constant(property), "InvalidateTargets", null),
                     sender, args);
                 var handler = lambda.Compile();
                 _collectionChangedEvent.AddEventHandler(value, handler);
                 return handler;
             }
 
+            /// <summary>
+            /// Removes a <c>INotifyCollectionChanged.CollectionChanged</c> event handler from the specified value. Does nothing if <typeparamref name="T"/> does not implement <c>INotifyCollectionChanged</c> or if <paramref name="value"/> is <c>null</c>.
+            /// </summary>
+            /// <param name="value">The value being observed. May be <c>null</c>.</param>
+            /// <param name="handler">The delegate to be unsubscribed.</param>
             public static void RemoveEventHandler(T value, Delegate handler)
             {
                 // ReSharper disable once CompareNonConstrainedGenericWithNull
