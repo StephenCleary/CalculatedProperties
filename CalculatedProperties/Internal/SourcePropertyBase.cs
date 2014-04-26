@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Threading;
 
 namespace CalculatedProperties.Internal
 {
@@ -10,6 +11,7 @@ namespace CalculatedProperties.Internal
     /// </summary>
     public abstract class SourcePropertyBase : ISourceProperty
     {
+        private readonly int _threadId;
         private readonly Action<PropertyChangedEventArgs> _onPropertyChanged;
         private readonly HashSet<ITargetProperty> _targets;
         private PropertyChangedEventArgs _args;
@@ -21,6 +23,7 @@ namespace CalculatedProperties.Internal
         /// <param name="onPropertyChanged">A method that raises <see cref="INotifyPropertyChanged.PropertyChanged"/>.</param>
         protected SourcePropertyBase(Action<PropertyChangedEventArgs> onPropertyChanged)
         {
+            _threadId = Thread.CurrentThread.ManagedThreadId;
             _onPropertyChanged = onPropertyChanged;
             _targets = new HashSet<ITargetProperty>();
         }
@@ -31,6 +34,9 @@ namespace CalculatedProperties.Internal
         /// <param name="propertyName">The name of this property.</param>
         protected void SetPropertyName(string propertyName)
         {
+            if (_threadId != Thread.CurrentThread.ManagedThreadId)
+                throw new InvalidOperationException("Cross-thread access detected.");
+
             if (propertyName == null)
             {
                 Debug.WriteLine("CalculatedProperties: Property name set to null!");
