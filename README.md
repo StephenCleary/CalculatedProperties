@@ -29,3 +29,6 @@ http://www.codeproject.com/Articles/375192/WPF-The-calculated-property-dependenc
 http://updatecontrols.net/cs/
 - Nice, but requires ViewModels to follow their own special pattern; at runtime there's a "wrapper" created via reflection around your VMs.
 - Also, tries too hard to be a framework; I want a library.
+
+
+- Does not support IBindingList, but it wouldn't be too hard to add if someone needs it.
