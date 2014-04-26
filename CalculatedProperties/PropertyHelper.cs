@@ -32,15 +32,15 @@ namespace CalculatedProperties
         /// Retrieves the specified trigger property if it exists; otherwise, creates the named trigger property and returns it.
         /// </summary>
         /// <typeparam name="T">The type of the property value.</typeparam>
-        /// <param name="initialValue">The optional initial value of the property.</param>
+        /// <param name="calculateInitialValue">The optional delegate that returns the initial value of the property.</param>
         /// <param name="comparer">The optional comparer used to determine when the value of the property has changed.</param>
         /// <param name="propertyName">The name of the property to retrieve or create.</param>
-        public TriggerProperty<T> GetOrAddTriggerProperty<T>(T initialValue = default(T), IEqualityComparer<T> comparer = null, [CallerMemberName] string propertyName = null)
+        public TriggerProperty<T> GetOrAddTriggerProperty<T>(Func<T> calculateInitialValue = null, IEqualityComparer<T> comparer = null, [CallerMemberName] string propertyName = null)
         {
             IProperty result;
             if (!_properties.TryGetValue(propertyName, out result))
             {
-                result = new TriggerProperty<T>(_onPropertyChanged, initialValue, comparer);
+                result = new TriggerProperty<T>(_onPropertyChanged, calculateInitialValue == null ? default(T) : calculateInitialValue(), comparer);
                 _properties.Add(propertyName, result);
             }
 
@@ -93,12 +93,24 @@ namespace CalculatedProperties
         /// Implements the getter for a trigger property.
         /// </summary>
         /// <typeparam name="T">The type of the property value.</typeparam>
-        /// <param name="initialValue">The optional initial value of the property.</param>
+        /// <param name="calculateInitialValue">The delegate that returns the initial value of the property.</param>
+        /// <param name="comparer">The optional comparer used to determine when the value of the property has changed. If this is specified, then the same comparer should be passed to the setter implementation.</param>
+        /// <param name="propertyName">The name of the property.</param>
+        public T Get<T>(Func<T> calculateInitialValue, IEqualityComparer<T> comparer = null, [CallerMemberName] string propertyName = null)
+        {
+            return GetOrAddTriggerProperty(calculateInitialValue, comparer, propertyName).GetValue(propertyName);
+        }
+
+        /// <summary>
+        /// Implements the getter for a trigger property.
+        /// </summary>
+        /// <typeparam name="T">The type of the property value.</typeparam>
+        /// <param name="initialValue">The initial value of the property.</param>
         /// <param name="comparer">The optional comparer used to determine when the value of the property has changed. If this is specified, then the same comparer should be passed to the setter implementation.</param>
         /// <param name="propertyName">The name of the property.</param>
         public T Get<T>(T initialValue, IEqualityComparer<T> comparer = null, [CallerMemberName] string propertyName = null)
         {
-            return GetOrAddTriggerProperty(initialValue, comparer, propertyName).GetValue(propertyName);
+            return Get(() => initialValue, comparer, propertyName);
         }
 
         /// <summary>
@@ -110,7 +122,7 @@ namespace CalculatedProperties
         /// <param name="propertyName">The name of the property.</param>
         public void Set<T>(T value, IEqualityComparer<T> comparer = null, [CallerMemberName] string propertyName = null)
         {
-            GetOrAddTriggerProperty(value, comparer, propertyName).SetValue(value, propertyName);
+            GetOrAddTriggerProperty(() => value, comparer, propertyName).SetValue(value, propertyName);
         }
 
         /// <summary>
