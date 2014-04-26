@@ -13,9 +13,14 @@ namespace CalculatedProperties.Internal
     public static class ReflectionHelper
     {
         private static Type _iNotifyCollectionChangedType;
-        private static Type _notifyCollectionChangedEventArgsType;
         private static Type _notifyCollectionChangedEventHandlerType;
+        private static Type _notifyCollectionChangedEventArgsType;
         private static EventInfo _collectionChangedEvent;
+
+        private static Type _iBindingListType;
+        private static Type _listChangedEventHandlerType;
+        private static Type _listChangedEventArgsType;
+        private static EventInfo _listChangedEvent;
 
         /// <summary>
         /// Provides methods (with caching) to assist with reflection over a specific type.
@@ -23,27 +28,45 @@ namespace CalculatedProperties.Internal
         /// <typeparam name="T">The type being reflected over.</typeparam>
         public static class For<T>
         {
-            // ReSharper disable once StaticFieldInGenericType
+            // ReSharper disable StaticFieldInGenericType
             private static readonly bool ImplementsINotifyCollectionChanged;
+            private static readonly bool ImplementsIBindingList;
+            // ReSharper restore StaticFieldInGenericType
 
             static For()
             {
-                if (_collectionChangedEvent == null)
-                {
-                    _iNotifyCollectionChangedType = typeof(T).GetInterfaces().FirstOrDefault(x => x.FullName == "System.Collections.Specialized.INotifyCollectionChanged");
-                    if (_iNotifyCollectionChangedType == null)
-                        return;
+                var interfaces = typeof (T).GetInterfaces();
+                ImplementsINotifyCollectionChanged = DetectINotifyCollectionChanged(interfaces);
+                if (!ImplementsINotifyCollectionChanged)
+                    ImplementsIBindingList = DetectIBindingList(interfaces);
+            }
 
-                    ImplementsINotifyCollectionChanged = true;
-                    var assembly = _iNotifyCollectionChangedType.Assembly;
-                    _notifyCollectionChangedEventArgsType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventArgs");
-                    _notifyCollectionChangedEventHandlerType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventHandler");
-                    _collectionChangedEvent = _iNotifyCollectionChangedType.GetEvent("CollectionChanged");
-                }
-                else
-                {
-                    ImplementsINotifyCollectionChanged = typeof (T).GetInterfaces().Contains(_iNotifyCollectionChangedType);
-                }
+            private static bool DetectINotifyCollectionChanged(IEnumerable<Type> interfaces)
+            {
+                if (_collectionChangedEvent != null)
+                    return interfaces.Contains(_iNotifyCollectionChangedType);
+                _iNotifyCollectionChangedType = interfaces.FirstOrDefault(x => x.FullName == "System.Collections.Specialized.INotifyCollectionChanged");
+                if (_iNotifyCollectionChangedType == null)
+                    return false;
+                var assembly = _iNotifyCollectionChangedType.Assembly;
+                _notifyCollectionChangedEventHandlerType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventHandler");
+                _notifyCollectionChangedEventArgsType = assembly.GetType("System.Collections.Specialized.NotifyCollectionChangedEventArgs");
+                _collectionChangedEvent = _iNotifyCollectionChangedType.GetEvent("CollectionChanged");
+                return true;
+            }
+
+            private static bool DetectIBindingList(IEnumerable<Type> interfaces)
+            {
+                if (_collectionChangedEvent != null)
+                    return interfaces.Contains(_iBindingListType);
+                _iBindingListType = interfaces.FirstOrDefault(x => x.FullName == "System.ComponentModel.IBindingList");
+                if (_iBindingListType == null)
+                    return false;
+                var assembly = _iBindingListType.Assembly;
+                _listChangedEventHandlerType = assembly.GetType("System.ComponentModel.ListChangedEventHandler");
+                _listChangedEventArgsType = assembly.GetType("System.ComponentModel.ListChangedEventArgs");
+                _listChangedEvent = _iBindingListType.GetEvent("ListChanged");
+                return true;
             }
 
             /// <summary>
@@ -54,16 +77,19 @@ namespace CalculatedProperties.Internal
             public static Delegate AddEventHandler(IProperty property, T value)
             {
                 // ReSharper disable once CompareNonConstrainedGenericWithNull
-                if (!ImplementsINotifyCollectionChanged || value == null)
+                if ((!ImplementsINotifyCollectionChanged && !ImplementsIBindingList) || value == null)
                     return null;
 
                 var sender = Expression.Parameter(typeof(object), "sender");
-                var args = Expression.Parameter(_notifyCollectionChangedEventArgsType, "e");
-                var lambda = Expression.Lambda(_notifyCollectionChangedEventHandlerType,
+                var args = Expression.Parameter(ImplementsINotifyCollectionChanged ? _notifyCollectionChangedEventArgsType : _listChangedEventArgsType, "e");
+                var lambda = Expression.Lambda(ImplementsINotifyCollectionChanged ? _notifyCollectionChangedEventHandlerType : _listChangedEventHandlerType,
                     Expression.Call(Expression.Constant(property), "InvalidateTargets", null),
                     sender, args);
                 var handler = lambda.Compile();
-                _collectionChangedEvent.AddEventHandler(value, handler);
+                if (ImplementsINotifyCollectionChanged)
+                    _collectionChangedEvent.AddEventHandler(value, handler);
+                else
+                    _listChangedEvent.AddEventHandler(value, handler);
                 return handler;
             }
 
@@ -75,9 +101,12 @@ namespace CalculatedProperties.Internal
             public static void RemoveEventHandler(T value, Delegate handler)
             {
                 // ReSharper disable once CompareNonConstrainedGenericWithNull
-                if (!ImplementsINotifyCollectionChanged || value == null)
+                if ((!ImplementsINotifyCollectionChanged && !ImplementsIBindingList) || value == null)
                     return;
-                _collectionChangedEvent.RemoveEventHandler(value, handler);
+                if (ImplementsINotifyCollectionChanged)
+                    _collectionChangedEvent.RemoveEventHandler(value, handler);
+                else
+                    _listChangedEvent.RemoveEventHandler(value, handler);
             }
         }
     }
