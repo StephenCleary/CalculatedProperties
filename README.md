@@ -92,6 +92,10 @@ When the dependency tracking scope is completed, it updates the calculated prope
 
 `PropertyChanged` notification normally happens at the end of invalidation, after all affected properties have been invalidated. After all affected properties have been invalidated, then all invalidated properties raise `PropertyChanged`.
 
+<div class="aside">
+    <p>Side note.</p>
+</div>
+
 > The whole invalidation and dependency tracking system is independent of `PropertyChanged`. Raising `PropertyChanged` is a separate step in the process, for several reasons. A separate invalidation/dependency tracking system is more efficient than one that is based on `PropertyChanged`. As a separate system, it avoids string comparisons and spurious notifications within the system. Also, the separation permits consolidation of both the invalidation phase and the notification phase, eliminating spurious notifications produced by the system.
 > 
 > A final benefit of this separation is that it results in a cleaner and more predictable execution of complex scenarios. E.g., if you choose to use the `PropertyChanged` of a calculated property to (manually) update a different trigger property. If invalidation and dependency tracking were implemented using `PropertyChanged`, then that would be a hairy scenario to untangle and predict which properties will be updated when. By separating invalidation/dependency tracking from `PropertyChanged`, the execution is much more predictable (and efficient). Of course, this is still an unusual test case, and not recommented; I recommend replacing manual `PropertyChanged` handlers with calculated properties as much as possible.
