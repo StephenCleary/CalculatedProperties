@@ -6,7 +6,7 @@ Easy-to-use calculated properties for MVVM apps (.NET 4, MonoTouch, MonoDroid, W
 
 ## Quick Start
 
-Install the NuGet package.
+Install the [NuGet package](https://www.nuget.org/packages/Nito.CalculatedProperties).
 
 Add a `PropertyHelper` instance to your view model (pass in a delegate that raises `PropertyChanged` for that instance):
 
