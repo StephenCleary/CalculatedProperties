@@ -1,6 +1,6 @@
-# CalculatedProperties
-
 ![Logo](Icon.128.png)
+
+# Calculated Properties
 
 Easy-to-use calculated properties for MVVM apps (.NET 4, MonoTouch, MonoDroid, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8.0, and Silverlight 5).
 
