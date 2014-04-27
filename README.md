@@ -48,7 +48,7 @@ It's magic!
 
 ## How It Works
 
-Property relationships are determined using dependency tracking. For more information, [see the wiki]([[How It Works]]).
+Property relationships are determined using dependency tracking. For more information, [see the wiki](https://github.com/StephenCleary/CalculatedProperties/wiki/How-It-Works).
 
 ## Alternatives
 
