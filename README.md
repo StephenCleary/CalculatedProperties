@@ -1,8 +1,10 @@
-= CalculatedProperties
+# CalculatedProperties
+
+![Logo](Logo.128.png)
 
 Easy-to-use calculated properties for MVVM apps (.NET 4, MonoTouch, MonoDroid, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8.0, and Silverlight 5).
 
-== Quick Start
+## Quick Start
 
 Install the NuGet package.
 
@@ -44,11 +46,11 @@ No, seriously. That's it.
 
 It's magic!
 
-== How It Works
+## How It Works
 
 Property relationships are determined using dependency tracking.
 
-=== Terminology
+### Terminology
 
 A **source property** is a property whose value is used in the calculation of another property. Every source property has a collection of target properties that it influences.
 
@@ -60,7 +62,7 @@ A **calculated property** is a read-only target property that is *also* a source
 
 Source properties and target properties are internal concepts (they're not exposed to you), but they help simplify the dependency tracking discussion below. Just keep in mind that a target property is always a calculated property, but a source property may be a trigger property *or* a calculated property.
 
-=== Invalidation
+### Invalidation
 
 Invalidation can start one of several ways:
 
@@ -72,13 +74,13 @@ When a trigger property is written, that trigger property and the transitive clo
 
 Invalidation always defers `PropertyChanged` notification while the affected properties are being invalidated, and resumes notification when the invalidations are complete. See "Notification", below.
 
-=== Calculated Values
+### Calculated Values
 
 Calculated properties will calculate their value on demand (i.e., when read). They also remember the calculated value and will not re-evaluate it as long as it is valid. So, if a calculated property is retrieved and then retrieved again immediately, the cached value is returned the second time.
 
 Invalidating a calculated property merely marks the property as invalid. It will not actually recalculate its value until its getter is called. When calculated properties are initially constructed, they are always invalid.
 
-=== Dependency Tracking
+### Dependency Tracking
 
 When a calculated property calculates its value, it establishes a dependency tracking scope with itself as the target property. While the calulated property delegate is being evaluated, any trigger property getters or calculated property getters will register those properties as source properties within that scope.
 
@@ -86,7 +88,7 @@ Since a calculated property may depend on other calculated properties, dependenc
 
 When the dependency tracking scope is completed, it updates the calculated property's collection of source properties as well as the source properties' collections of target properties. This ensures that each property knows all of its target properties (and source properties, if applicable).
 
-=== Notification
+### Notification
 
 `PropertyChanged` notification normally happens at the end of invalidation, after all affected properties have been invalidated. After all affected properties have been invalidated, then all invalidated properties raise `PropertyChanged`.
 
@@ -109,7 +111,7 @@ You can defer notifications manually. You would want to do this, for example, if
 
 This is especially useful if you have calculated properties that depend on multiple values that you're setting; by deferring the `PropertyChanged` notifications, you're consolidating the multiple `PropertyChanged` events into a single one.
 
-=== Example Update Lifecycle
+### Example Update Lifecycle
 
 A walk-through should help take the abstract concepts above and translate them to a concrete description of how the property values work. Take the introductory example:
 
@@ -173,7 +175,7 @@ Fun, eh? Now, let's observe how an update works. Let's set a source property:
 
 This sounds like a lot of work, but in reality it is *extremely* fast, as well as flexible.
 
-=== Collections
+### Collections
 
 When the current value of a trigger property or calculated property is a collection that implements `INotifyCollectionChanged`, then that property will subscribe to `CollectionChanged` and invalidate the transitive closure of all its target properties whenever the collection changes in any way. Note that in this case, the property value is not actually changed (it still refers to the same collection), so only the target properties are invalidated, not the property whose value is the collection. Calling `InvalidateTargets()` on a trigger property or calculated property has the same effect.
 
@@ -192,7 +194,7 @@ This allows calculated properties to use observable collections and Just Work:
 
 `IBindingList` is supported in the same way as `INotifyCollectionChanged`; however, `IBindingList` is less efficient. Use `ObservableCollection<T>` instead of `BindingList<T>` if possible.
 
-=== Comparers
+### Comparers
 
 When a trigger property is set, it will first evaluate its old value against its new value to determine whether it needs to update. You can specify a comparer to the trigger property to override how this comparison is done:
 
@@ -209,7 +211,7 @@ If a trigger property is set to an "equal" value, then it does *not* enter the i
 
 If you'd like a simple library with a fluent API for creating comparers and equality comparers, try the [Comparers NuGet package](https://www.nuget.org/packages/Comparers/).
 
-=== Miscellany
+### Miscellany
 
 Trigger properties and calculated properties are **not threadsafe**. They are not specifically tied to a UI thread (they don't use `Dispatcher` or anything like that), but they do expect that they will all be written to from the same thread (which, in practice, is the UI thread). Some MVVM platforms (most notably WPF) will do automatic cross-thread marshaling for simple property updates, but that *will not work* for updating calculated properties. Trigger properties and calculated properties will detect cross-thread access and will throw `InvalidOperationException`.
 
@@ -217,7 +219,7 @@ Like regular data binding, trigger properties and calculated properties will wri
 
 Dependency loops (e.g., a calculated property indirectly depending on its own value) will result in a stack overflow exception. I have no intention of adding explicit checks for this, since I expect it to be a rare scenario.
 
-== Alternatives
+## Alternatives
 
 Before writing this library, I looked pretty hard for something that already existed.
 
@@ -239,7 +241,7 @@ Manual implementation is a possibility. Calculated properties can use expression
         get { return MyValue * 2; }
     }
 
-However, this is not maintainable. The core problem is that the calculation of +MyCalculatedValue+ and the declaration of the dependency are far apart, in different properties. As the calculations change and grow more complex, eventually the dependencies will not be correct.
+However, this is not maintainable. The core problem is that the calculation of `MyCalculatedValue` and the declaration of the dependency are far apart, in different properties. As the calculations change and grow more complex, eventually the dependencies will not be correct.
 
 An alternative is to define a property dependency mapping in code, as [this StackOverflow answer](http://stackoverflow.com/a/4596666/263693) suggests. A concrete implementation is available [in a Code Project article](http://www.codeproject.com/Articles/375192/WPF-The-calculated-property-dependency-problem). This solution makes the properties look like:
 
