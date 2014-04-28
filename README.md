@@ -69,7 +69,7 @@ This is especially useful if you have calculated properties that depend on multi
 
 Before writing this library, I looked pretty hard for something that already existed.
 
-Manual implementation is a possibility. Calculated properties can use expression lambdas to look like this:
+Manual implementation is a possibility. The code can use expression lambdas to look like this:
 
     private int _myValue;
     public int MyValue
