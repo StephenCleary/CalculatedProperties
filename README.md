@@ -50,6 +50,21 @@ It's magic!
 
 Property relationships are determined using dependency tracking. For more information, [see the wiki](https://github.com/StephenCleary/CalculatedProperties/wiki/How-It-Works).
 
+The only really important thing you should know is that the `PropertyChanged` notifications are not raised immediately; they're deferred and then all raised together (combining any duplicate notifications).
+
+You can defer notifications manually. You would want to do this, for example, if you are setting several different trigger values and want to do so in the most efficient manner:
+
+    using (PropertyChangedNotificationManager.Instance.DeferNotifications())
+    {
+        vm.SomeProperty = someValue;
+        vm.OtherProperty = otherValue;
+        // At this point, no PropertyChanged events have been raised.
+    }
+    // At this point, all PropertyChanged events have been raised
+    //  (assuming there are no deferrals further up the stack).
+
+This is especially useful if you have calculated properties that depend on multiple values that you're setting; by deferring the `PropertyChanged` notifications, you're consolidating the multiple `PropertyChanged` events into a single one.
+
 ## Alternatives
 
 Before writing this library, I looked pretty hard for something that already existed.
