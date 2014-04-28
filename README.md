@@ -10,11 +10,11 @@ Install the [NuGet package](https://www.nuget.org/packages/Nito.CalculatedProper
 
 Add a `PropertyHelper` instance to your view model (pass in a delegate that raises `PropertyChanged` for that instance):
 
-    private readonly PropertyHelper Properties;
+    private readonly PropertyHelper Property;
 
     public MyViewModel()
     {
-        Properties = new PropertyHelper(RaisePropertyChanged);
+        Property = new PropertyHelper(RaisePropertyChanged);
     }
 
     private void RaisePropertyChanged(PropertyChangedEventArgs args)
@@ -25,17 +25,17 @@ Add a `PropertyHelper` instance to your view model (pass in a delegate that rais
 
 Next, create read/write _trigger_ properties (pass the default value in the getter):
 
-    public int MyValue
+    public string Name
     {
-        get { return Properties.Get(7); }
-        set { Properties.Set(value); }
+        get { return Property.Get(string.Empty); }
+        set { Property.Set(value); }
     }
 
 Now you can create read-only _calculated_ properties:
 
-    public int MyCalculatedValue
+    public string Greeting
     {
-        get { return Properties.Calculated(() => MyValue * 2); }
+        get { return Property.Calculated(() => "Hello, " + Name + "!"); }
     }
 
 Done.
