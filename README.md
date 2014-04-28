@@ -89,7 +89,7 @@ Manual implementation is a possibility. The code can use expression lambdas to l
 
 However, this is not maintainable. The core problem is that the calculation of `MyCalculatedValue` and the declaration of the dependency are far apart, in different properties. As the calculations change and grow more complex, eventually the dependencies will not be correct.
 
-An alternative is to define a property dependency mapping in code, as [this StackOverflow answer](http://stackoverflow.com/a/4596666/263693) suggests. A concrete implementation is available [in a Code Project article](http://www.codeproject.com/Articles/375192/WPF-The-calculated-property-dependency-problem). This solution makes the properties look like:
+An alternative is to define a property dependency mapping dictionary in code, as [this StackOverflow answer](http://stackoverflow.com/a/4596666/263693) suggests. A concrete implementation is available [in a Code Project article](http://www.codeproject.com/Articles/375192/WPF-The-calculated-property-dependency-problem). This solution makes the properties look like:
 
     private int _myValue;
     public int MyValue
