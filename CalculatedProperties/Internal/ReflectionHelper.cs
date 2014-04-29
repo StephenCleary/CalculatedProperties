@@ -80,17 +80,33 @@ namespace CalculatedProperties.Internal
                 if ((!ImplementsINotifyCollectionChanged && !ImplementsIBindingList) || value == null)
                     return null;
 
-                var sender = Expression.Parameter(typeof(object), "sender");
-                var args = Expression.Parameter(ImplementsINotifyCollectionChanged ? _notifyCollectionChangedEventArgsType : _listChangedEventArgsType, "e");
-                var lambda = Expression.Lambda(ImplementsINotifyCollectionChanged ? _notifyCollectionChangedEventHandlerType : _listChangedEventHandlerType,
-                    Expression.Call(Expression.Constant(property), "InvalidateTargets", null),
-                    sender, args);
-                var handler = lambda.Compile();
+                Delegate result;
                 if (ImplementsINotifyCollectionChanged)
-                    _collectionChangedEvent.AddEventHandler(value, handler);
+                {
+                    // (object sender, NotifyCollectionChangedEventArgs e) => property.InvalidateTargets();
+                    var sender = Expression.Parameter(typeof(object), "sender");
+                    var args = Expression.Parameter(_notifyCollectionChangedEventArgsType, "e");
+                    var lambda = Expression.Lambda(_notifyCollectionChangedEventHandlerType,
+                        Expression.Call(Expression.Constant(property), "InvalidateTargets", null),
+                        sender, args);
+                    result = lambda.Compile();
+
+                    _collectionChangedEvent.AddEventHandler(value, result);
+                }
                 else
-                    _listChangedEvent.AddEventHandler(value, handler);
-                return handler;
+                {
+                    // (object sender, ListChangedEventArgsType e) => property.InvalidateTargets();
+                    var sender = Expression.Parameter(typeof(object), "sender");
+                    var args = Expression.Parameter(_listChangedEventArgsType, "e");
+                    var lambda = Expression.Lambda(_listChangedEventHandlerType,
+                        Expression.Call(Expression.Constant(property), "InvalidateTargets", null),
+                        sender, args);
+                    result = lambda.Compile();
+
+                    _listChangedEvent.AddEventHandler(value, result);
+                }
+
+                return result;
             }
 
             /// <summary>

@@ -9,13 +9,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Unit_Tests
 {
     [TestClass]
-    public class CollectionUnitTests
+    public class BindingListUnitTests
     {
         public sealed class ViewModel : ViewModelBase
         {
-            public ObservableCollection<int> Leaf
+            public BindingList<int> Leaf
             {
-                get { return Properties.Get(new ObservableCollection<int>()); }
+                get { return Properties.Get(new BindingList<int>()); }
                 set { Properties.Set(value); }
             }
 
@@ -32,9 +32,18 @@ namespace Unit_Tests
                 }
             }
 
-            public ObservableCollection<int> Intermediate
+            public BindingList<int> Intermediate
             {
-                get { return Properties.Calculated(() => new ObservableCollection<int>(Leaf)); }
+                get
+                {
+                    return Properties.Calculated(() =>
+                    {
+                        var ret = new BindingList<int>();
+                        foreach (var element in Leaf)
+                            ret.Add(element);
+                        return ret;
+                    });
+                }
             }
 
             public int Calculated
@@ -42,9 +51,9 @@ namespace Unit_Tests
                 get { return Properties.Calculated(() => Intermediate.Count); }
             }
 
-            public ObservableCollection<ChildViewModel> Children
+            public BindingList<ChildViewModel> Children
             {
-                get { return Properties.Get(new ObservableCollection<ChildViewModel>()); }
+                get { return Properties.Get(new BindingList<ChildViewModel>()); }
                 set { Properties.Set(value); }
             }
 
@@ -103,7 +112,7 @@ namespace Unit_Tests
             var vm = new ViewModel();
             vm.Leaf.Add(7);
             Assert.AreEqual(7, vm.FirstOr13);
-            var newValue = new ObservableCollection<int>();
+            var newValue = new BindingList<int>();
             vm.Leaf = newValue;
             Assert.AreEqual(13, vm.FirstOr13);
             newValue.Add(11);
@@ -117,7 +126,7 @@ namespace Unit_Tests
             vm.Leaf.Add(7);
             Assert.AreEqual(7, vm.FirstOr13);
             var oldValue = vm.Leaf;
-            vm.Leaf = new ObservableCollection<int>();
+            vm.Leaf = new BindingList<int>();
             Assert.AreEqual(13, vm.FirstOr13);
 
             var changes = new List<string>();
@@ -152,7 +161,7 @@ namespace Unit_Tests
         {
             var vm = new ViewModel();
             Assert.AreEqual(0, vm.Calculated);
-            var newValue = new ObservableCollection<int>();
+            var newValue = new BindingList<int>();
             vm.Leaf = newValue;
             Assert.AreEqual(0, vm.Calculated);
             newValue.Add(11);
@@ -166,7 +175,7 @@ namespace Unit_Tests
             vm.Leaf.Add(11);
             Assert.AreEqual(1, vm.Calculated);
             var oldValue = vm.Leaf;
-            vm.Leaf = new ObservableCollection<int>();
+            vm.Leaf = new BindingList<int>();
             Assert.AreEqual(0, vm.Calculated);
 
             var changes = new List<string>();
@@ -178,7 +187,7 @@ namespace Unit_Tests
         }
 
         [TestMethod]
-        public void ItemPropertyUpdated_DoesNotRecalculate()
+        public void ItemPropertyUpdated_DoesRecalculate()
         {
             var vm = new ViewModel();
             vm.Children.Add(new ViewModel.ChildViewModel { Name = "Steve" });
@@ -188,8 +197,8 @@ namespace Unit_Tests
 
             vm.Children[0].Name = "Bob";
 
-            Assert.AreEqual("Steve", vm.FirstChildName);
-            CollectionAssert.AreEquivalent(new string[] { }, changes);
+            Assert.AreEqual("Bob", vm.FirstChildName);
+            CollectionAssert.AreEquivalent(new[] { "FirstChildName" }, changes);
         }
     }
 }
