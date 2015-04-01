@@ -10,8 +10,8 @@ namespace Nito.CalculatedProperties
     /// A calculated property: a property whose value is determined by a delegate. Calculated properties are target properties and may also be source properties.
     /// </summary>
     /// <typeparam name="T">The type of the property value returned by the delegate.</typeparam>
-    //[DebuggerTypeProxy(typeof(CalculatedProperty<>.DebugView))]
-    //[DebuggerDisplay("{DebuggerDisplay,nq}")]
+    [DebuggerTypeProxy(typeof(CalculatedProperty<>.DebugView))]
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class CalculatedProperty<T> : ISourceProperty, ITargetProperty
     {
         private readonly SourceProperty _sourceProperty;
@@ -105,7 +105,7 @@ namespace Nito.CalculatedProperties
             _sourceProperty.InvalidateTargets();
         }
 
-#if NO
+        [DebuggerNonUserCode]
         private string DebuggerDisplay
         {
             get
@@ -121,15 +121,16 @@ namespace Nito.CalculatedProperties
             }
         }
 
-        private sealed new class DebugView
+        [DebuggerNonUserCode]
+        private sealed class DebugView
         {
             private readonly CalculatedProperty<T> _property;
-            private readonly SourcePropertyBase.DebugView _base;
+            private readonly SourceProperty.DebugView _base;
 
             public DebugView(CalculatedProperty<T> property)
             {
                 _property = property;
-                _base = new SourcePropertyBase.DebugView(property);
+                _base = new SourceProperty.DebugView(property._sourceProperty);
             }
 
             public string Name { get { return _base.Name; } }
@@ -144,6 +145,5 @@ namespace Nito.CalculatedProperties
 
             public bool ListeningToCollectionChanged { get { return _property._collectionChangedHandler != null; } }
         }
-#endif
     }
 }

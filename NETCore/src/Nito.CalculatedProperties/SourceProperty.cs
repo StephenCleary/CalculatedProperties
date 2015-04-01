@@ -102,19 +102,16 @@ namespace Nito.CalculatedProperties
             _targets.Remove(targetProperty);
         }
 
-#if NO
-        /// <summary>
-        /// A type that exposes internal values, for debugger use only!
-        /// </summary>
-        protected sealed class DebugView
+        [DebuggerNonUserCode]
+        public sealed class DebugView
         {
-            private readonly SourcePropertyBase _property;
+            private readonly SourceProperty _property;
 
             /// <summary>
             /// Creates a debug view for the specified property.
             /// </summary>
             /// <param name="property">The property to examine.</param>
-            public DebugView(SourcePropertyBase property)
+            public DebugView(SourceProperty property)
             {
                 _property = property;
             }
@@ -129,6 +126,5 @@ namespace Nito.CalculatedProperties
             /// </summary>
             public HashSet<ITargetProperty> Targets { get { return _property._targets; } }
         }
-#endif
     }
 }

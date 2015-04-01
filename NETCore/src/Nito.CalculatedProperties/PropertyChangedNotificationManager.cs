@@ -61,6 +61,7 @@ namespace Nito.CalculatedProperties
             }
         }
 
+        [DebuggerNonUserCode]
         private string DebuggerDisplay
         {
             get
@@ -71,6 +72,7 @@ namespace Nito.CalculatedProperties
             }
         }
 
+        [DebuggerNonUserCode]
         private sealed class DebugView
         {
             private readonly PropertyChangedNotificationManager _value;

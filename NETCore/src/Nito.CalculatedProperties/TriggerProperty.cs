@@ -10,8 +10,8 @@ namespace Nito.CalculatedProperties
     /// A trigger property: a source property that invalidates its targets when set.
     /// </summary>
     /// <typeparam name="T">The type of the property value.</typeparam>
-    //[DebuggerTypeProxy(typeof(TriggerProperty<>.DebugView))]
-    //[DebuggerDisplay("{DebuggerDisplay,nq}")]
+    [DebuggerTypeProxy(typeof(TriggerProperty<>.DebugView))]
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class TriggerProperty<T> : ISourceProperty
     {
         private readonly SourceProperty _sourceProperty;
@@ -95,7 +95,7 @@ namespace Nito.CalculatedProperties
             _sourceProperty.InvalidateTargets();
         }
 
-#if NO
+        [DebuggerNonUserCode]
         private string DebuggerDisplay
         {
             get
@@ -109,15 +109,16 @@ namespace Nito.CalculatedProperties
             }
         }
 
-        private sealed new class DebugView
+        [DebuggerNonUserCode]
+        private sealed class DebugView
         {
             private readonly TriggerProperty<T> _property;
-            private readonly SourcePropertyBase.DebugView _base;
+            private readonly SourceProperty.DebugView _base;
 
             public DebugView(TriggerProperty<T> property)
             {
                 _property = property;
-                _base = new SourcePropertyBase.DebugView(property);
+                _base = new SourceProperty.DebugView(property._sourceProperty);
             }
 
             public string Name { get { return _base.Name; } }
@@ -128,6 +129,5 @@ namespace Nito.CalculatedProperties
 
             public bool ListeningToCollectionChanged { get { return _property._collectionChangedHandler != null; } }
         }
-#endif
     }
 }

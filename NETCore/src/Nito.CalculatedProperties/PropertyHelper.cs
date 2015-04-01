@@ -134,11 +134,13 @@ namespace Nito.CalculatedProperties
             return GetOrAddCalculatedProperty(calculateValue, propertyName).GetValue(propertyName);
         }
 
+        [DebuggerNonUserCode]
         private string DebuggerDisplay
         {
             get { return "Count = " + _properties.Count; }
         }
 
+        [DebuggerNonUserCode]
         private sealed class DebugView
         {
             private readonly PropertyHelper _properties;
