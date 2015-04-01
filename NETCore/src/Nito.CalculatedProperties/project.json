@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0-alpha-1",
+    "authors": [ "Stephen Cleary" ],
+    "dependencies": {
+        "System.Collections": "4.0.10.0-beta-22605",
+        "System.Diagnostics.Debug": "4.0.10.0-beta-22605",
+        "System.Linq": "4.0.0.0-beta-22605",
+        "System.ObjectModel": "4.0.10.0-beta-22605",
+        "System.Linq.Expressions": "4.0.0.0-beta-22605",
+        "System.Runtime.Extensions": "4.0.10.0-beta-22605",
+        "System.Reflection": "4.0.10.0-beta-22605"
+    },
+
+    "compilationOptions": {
+        "warningsAsErrors": true
+    },
+
+    "frameworks": {
+        "net45": {
+            "dependencies": {
+            }
+        },
+        "aspnetcore50": {
+            "dependencies": {
+                "System.Runtime": "4.0.20-beta-22523"
+            }
+        }
+    }
+}
