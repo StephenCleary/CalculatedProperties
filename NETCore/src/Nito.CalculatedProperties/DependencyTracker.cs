@@ -8,7 +8,8 @@ namespace Nito.CalculatedProperties
     /// </summary>
     internal sealed class DependencyTracker
     {
-        private static readonly DependencyTracker SingletonInstance = new DependencyTracker();
+        [ThreadStatic]
+        private static DependencyTracker SingletonInstance;
         private readonly Stack<StackFrame> _stack;
 
         private DependencyTracker()
@@ -20,7 +21,15 @@ namespace Nito.CalculatedProperties
         /// <summary>
         /// Gets the singleton instance.
         /// </summary>
-        public static DependencyTracker Instance { get { return SingletonInstance; } }
+        public static DependencyTracker Instance
+        {
+            get
+            {
+                if (SingletonInstance == null)
+                    SingletonInstance = new DependencyTracker();
+                return SingletonInstance;
+            }
+        }
 
         /// <summary>
         /// Starts tracking dependencies for the specified target property. Stops tracking dependencies when the returned disposable is disposed. Dependencies are tracked using a stack, so this is safe to call for a target property that has other target properties as its source.

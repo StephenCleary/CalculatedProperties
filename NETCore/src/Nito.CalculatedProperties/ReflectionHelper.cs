@@ -20,6 +20,11 @@ internal static class ReflectionHelper
     private static Type _listChangedEventArgsType;
     private static EventInfo _listChangedEvent;
 
+    // This method does nothing; it only exists to make static field initialization deterministic.
+    static ReflectionHelper()
+    {
+    }
+
     /// <summary>
     /// Provides methods (with caching) to assist with reflection over a specific type.
     /// </summary>
@@ -85,7 +90,7 @@ internal static class ReflectionHelper
                 var sender = Expression.Parameter(typeof(object), "sender");
                 var args = Expression.Parameter(_notifyCollectionChangedEventArgsType, "e");
                 var lambda = Expression.Lambda(_notifyCollectionChangedEventHandlerType,
-                    Expression.Call(Expression.Constant(property), "InvalidateTargets", null),
+                    Expression.Call(Expression.Constant(property, typeof(IProperty)), "InvalidateTargets", null),
                     sender, args);
                 result = lambda.Compile();
 
@@ -97,7 +102,7 @@ internal static class ReflectionHelper
                 var sender = Expression.Parameter(typeof(object), "sender");
                 var args = Expression.Parameter(_listChangedEventArgsType, "e");
                 var lambda = Expression.Lambda(_listChangedEventHandlerType,
-                    Expression.Call(Expression.Constant(property), "InvalidateTargets", null),
+                    Expression.Call(Expression.Constant(property, typeof(IProperty)), "InvalidateTargets", null),
                     sender, args);
                 result = lambda.Compile();
 

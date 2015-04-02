@@ -13,7 +13,8 @@ namespace Nito.CalculatedProperties
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class PropertyChangedNotificationManager : IPropertyChangedNotificationManager
     {
-        private static readonly PropertyChangedNotificationManager SingletonInstance = new PropertyChangedNotificationManager();
+        [ThreadStatic]
+        private static PropertyChangedNotificationManager SingletonInstance;
         private readonly HashSet<IProperty> _propertiesRequiringNotification = new HashSet<IProperty>(); 
         private int _referenceCount;
 
@@ -24,7 +25,15 @@ namespace Nito.CalculatedProperties
         /// <summary>
         /// Gets the singleton instance.
         /// </summary>
-        public static PropertyChangedNotificationManager Instance { get { return SingletonInstance; } }
+        public static PropertyChangedNotificationManager Instance
+        {
+            get
+            {
+                if (SingletonInstance == null)
+                    SingletonInstance = new PropertyChangedNotificationManager();
+                return SingletonInstance;
+            }
+        }
 
         /// <summary>
         /// Defers <see cref="INotifyPropertyChanged.PropertyChanged"/> events until the returned disposable is disposed. Deferrals are reference counted, so they are safe to nest. Do not dispose the returned object more than once.
