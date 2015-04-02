@@ -1,8 +1,14 @@
 ![Logo](Icon.128.png)
 
-# Calculated Properties
+# Calculated Properties [![Gratipay](https://img.shields.io/gratipay/StephenCleary.svg?style=plastic)](https://gratipay.com/StephenCleary)
 
 Easy-to-use calculated properties for MVVM apps (.NET 4, MonoTouch, MonoDroid, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8.0, and Silverlight 5).
+
+> ## .NET Core / ASP.NET vNext Status
+>  [![AppVeyor](https://img.shields.io/appveyor/ci/StephenCleary/CalculatedProperties.svg?style=plastic)](https://ci.appveyor.com/project/StephenCleary/CalculatedProperties) [![Coveralls](https://img.shields.io/coveralls/StephenCleary/CalculatedProperties.svg?style=plastic)](https://coveralls.io/r/StephenCleary/CalculatedProperties)
+> [![NuGet Pre Release](https://img.shields.io/nuget/vpre/Nito.CalculatedProperties.svg?style=plastic)](https://www.nuget.org/packages/Nito.CalculatedProperties/)
+>
+> Support for `IBindingList` has been dropped in the .NET Core / ASP.NET vNext version.
 
 ## Quick Start
 
