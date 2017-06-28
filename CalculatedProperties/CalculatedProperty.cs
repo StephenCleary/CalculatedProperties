@@ -121,7 +121,7 @@ namespace CalculatedProperties
 
             public HashSet<ISourceProperty> Sources { get { return _property._sources; } } 
 
-            public HashSet<ITargetProperty> Targets { get { return _base.Targets; } }
+            public List<ITargetProperty> Targets { get { return _base.Targets; } }
 
             public bool ListeningToCollectionChanged { get { return _property._collectionChangedHandler != null; } }
         }

@@ -102,7 +102,7 @@ namespace CalculatedProperties
 
             public T Value { get { return _property._value; } }
 
-            public HashSet<ITargetProperty> Targets { get { return _base.Targets; } }
+            public List<ITargetProperty> Targets { get { return _base.Targets; } }
 
             public bool ListeningToCollectionChanged { get { return _property._collectionChangedHandler != null; } }
         }

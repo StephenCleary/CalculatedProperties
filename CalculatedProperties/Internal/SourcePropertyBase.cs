@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace CalculatedProperties.Internal
@@ -13,7 +14,7 @@ namespace CalculatedProperties.Internal
     {
         private readonly int _threadId;
         private readonly Action<PropertyChangedEventArgs> _onPropertyChanged;
-        private readonly HashSet<ITargetProperty> _targets;
+        private readonly HashSet<WeakReference> _targets;
         private PropertyChangedEventArgs _args;
         private string _propertyName;
 
@@ -25,7 +26,7 @@ namespace CalculatedProperties.Internal
         {
             _threadId = Thread.CurrentThread.ManagedThreadId;
             _onPropertyChanged = onPropertyChanged;
-            _targets = new HashSet<ITargetProperty>();
+            _targets = new HashSet<WeakReference>();
         }
 
         /// <summary>
@@ -73,12 +74,15 @@ namespace CalculatedProperties.Internal
                 // Queue OnNotifyPropertyChanged.
                 (PropertyChangedNotificationManager.Instance as IPropertyChangedNotificationManager).Register(this);
 
-                // Invalidate all targets.
-                foreach (var target in _targets)
-                    target.Invalidate();
+                InvalidateAllTargets();
             }
         }
 
+        private void InvalidateAllTargets()
+        {
+            foreach (ITargetProperty target in GetAliveTargets())
+                target.Invalidate();
+        }
         /// <summary>
         /// Invalidates this property and the transitive closure of all its target properties. If notifications are not deferred, then this method will raise <see cref="INotifyPropertyChanged.PropertyChanged"/> for all affected properties before returning. <see cref="INotifyPropertyChanged.PropertyChanged"/> is not raised for this property.
         /// </summary>
@@ -87,20 +91,18 @@ namespace CalculatedProperties.Internal
             // Ensure notifications are deferred.
             using (PropertyChangedNotificationManager.Instance.DeferNotifications())
             {
-                // Invalidate all targets.
-                foreach (var target in _targets)
-                    target.Invalidate();
+                InvalidateAllTargets();
             }
         }
 
         void ISourceProperty.AddTarget(ITargetProperty targetProperty)
         {
-            _targets.Add(targetProperty);
+            _targets.Add(new WeakReference(targetProperty));
         }
 
         void ISourceProperty.RemoveTarget(ITargetProperty targetProperty)
         {
-            _targets.Remove(targetProperty);
+            _targets.RemoveWhere(@ref => ReferenceEquals(@ref.Target, targetProperty));
         }
 
         /// <summary>
@@ -127,7 +129,13 @@ namespace CalculatedProperties.Internal
             /// <summary>
             /// Gets the target properties.
             /// </summary>
-            public HashSet<ITargetProperty> Targets { get { return _property._targets; } }
+            public List<ITargetProperty> Targets { get { return _property.GetAliveTargets(); } }
+        }
+
+        private List<ITargetProperty> GetAliveTargets()
+        {
+            _targets.RemoveWhere(@ref => !@ref.IsAlive);
+            return _targets.Select(@ref => @ref.Target as ITargetProperty).Where(t => t != null).ToList();
         }
     }
 }
