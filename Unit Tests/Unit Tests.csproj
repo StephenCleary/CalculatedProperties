@@ -53,6 +53,7 @@
     <Compile Include="BindingListUnitTests.cs" />
     <Compile Include="CollectionUnitTests.cs" />
     <Compile Include="ComparerUnitTests.cs" />
+    <Compile Include="PerformanceUnitTests.cs" />
     <Compile Include="MemoryLeakUnitTests.cs" />
     <Compile Include="TeeUnitTests.cs" />
     <Compile Include="ChainUnitTests.cs" />
