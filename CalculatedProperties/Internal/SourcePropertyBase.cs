@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace CalculatedProperties.Internal
@@ -14,7 +15,8 @@ namespace CalculatedProperties.Internal
     {
         private readonly int _threadId;
         private readonly Action<PropertyChangedEventArgs> _onPropertyChanged;
-        private readonly HashSet<WeakReference> _targets;
+        private readonly ConditionalWeakTable<ITargetProperty, ITargetProperty> _targetsLookup;
+        private readonly List<WeakReference> _targetsList;
         private PropertyChangedEventArgs _args;
         private string _propertyName;
 
@@ -26,7 +28,8 @@ namespace CalculatedProperties.Internal
         {
             _threadId = Thread.CurrentThread.ManagedThreadId;
             _onPropertyChanged = onPropertyChanged;
-            _targets = new HashSet<WeakReference>();
+            _targetsLookup = new ConditionalWeakTable<ITargetProperty, ITargetProperty>();
+            _targetsList = new List<WeakReference>();
         }
 
         /// <summary>
@@ -97,12 +100,16 @@ namespace CalculatedProperties.Internal
 
         void ISourceProperty.AddTarget(ITargetProperty targetProperty)
         {
-            _targets.Add(new WeakReference(targetProperty));
+            if (!ContainsTarget(targetProperty))
+            {
+                _targetsLookup.Add(targetProperty, targetProperty);
+                _targetsList.Add(new WeakReference(targetProperty));
+            }
         }
 
         void ISourceProperty.RemoveTarget(ITargetProperty targetProperty)
         {
-            _targets.RemoveWhere(@ref => ReferenceEquals(@ref.Target, targetProperty));
+            _targetsLookup.Remove(targetProperty);
         }
 
         /// <summary>
@@ -134,8 +141,14 @@ namespace CalculatedProperties.Internal
 
         private List<ITargetProperty> GetAliveTargets()
         {
-            _targets.RemoveWhere(@ref => !@ref.IsAlive);
-            return _targets.Select(@ref => @ref.Target as ITargetProperty).Where(t => t != null).ToList();
+            _targetsList.RemoveAll(@ref => !ContainsTarget((ITargetProperty) @ref.Target));
+            return _targetsList.Select(@ref => (ITargetProperty) @ref.Target).Where(t => t != null).ToList();
+        }
+
+        private bool ContainsTarget(ITargetProperty target)
+        {
+            ITargetProperty cachedTarget;
+            return target == null || _targetsLookup.TryGetValue(target, out cachedTarget);
         }
     }
 }
