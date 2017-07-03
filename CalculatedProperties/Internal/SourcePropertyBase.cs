@@ -148,7 +148,7 @@ namespace CalculatedProperties.Internal
         private bool ContainsTarget(ITargetProperty target)
         {
             ITargetProperty cachedTarget;
-            return target == null || _targetsLookup.TryGetValue(target, out cachedTarget);
+            return target != null && _targetsLookup.TryGetValue(target, out cachedTarget);
         }
     }
 }
